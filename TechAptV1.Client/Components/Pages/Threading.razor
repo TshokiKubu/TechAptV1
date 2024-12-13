@@ -1,42 +1,113 @@
 ﻿@page "/threading"
+@using TechAptV1.Client.Services
 
 <h3>Threading &amp; Data Persistence</h3>
 
+@*<div>
+    <button class="btn btn-primary" @onclick="StartComputationAsync" disabled="@_isProcessing">Start</button>
+    <button class="btn btn-primary" @onclick="SaveDataAsync" disabled="@(!_canSave)">Save</button>
+    <button class="btn btn-secondary" @onclick="SortData" disabled="@(!_canSort)">Sort</button>
+</div> *@
+
 <div>
-    <button class="btn btn-primary" @onclick="(async () => await this.Start())">Start</button>
-    <button class="btn btn-primary" @onclick="(async () => await this.Save())">Save</button>
+    <button class="btn btn-primary" @onclick="StartComputationAsync" disabled="@_isProcessing">Start</button>
+    <button class="btn btn-primary" @onclick="SaveDataAsync" disabled="@(!_canSave)">Save</button>
 </div>
+
 <div>
     <hr>
     <h4>Numbers:</h4>
     <ul>
-        <li>Odd: <strong>@this._oddNumbers</strong></li>
-        <li>Even: <strong>@this._evenNumbers</strong></li>
-        <li>Prime: <strong>@this._primeNumbers</strong></li>
-        <li>Total: <strong>@this._totalNumbers</strong></li>
+        <li>Odd: <strong>@_oddNumbers</strong></li>
+        <li>Even: <strong>@_evenNumbers</strong></li>
+        <li>Prime: <strong>@_primeNumbers</strong></li>
+        <li>Total: <strong>@_totalNumbers</strong></li>
     </ul>
     <hr>
 </div>
 
 @code {
-
     [Inject] public required ILogger<Threading> Logger { get; set; }
+    [Inject] public required ThreadingService ThreadingService { get; set; }
 
-    private int _oddNumbers = 0;
-    private int _evenNumbers = 0;
-    private int _primeNumbers = 0;
-    private int _totalNumbers = 0;
+    private int _oddNumbers;
+    private int _evenNumbers;
+    private int _primeNumbers;
+    private int _totalNumbers;
+    private bool _isProcessing = false;
+    private bool _canSave = false;
+    private bool _canSort = false;
 
-    private async Task Start()
+    
+
+    private async Task StartComputationAsync()
     {
-        this.Logger.LogInformation("Start");
-        throw new NotImplementedException();
+        if (_isProcessing) return;
+
+        try
+        {
+            _isProcessing = true;
+            StateHasChanged();
+            Logger.LogInformation("Computation started.");
+
+            await ThreadingService.StartAsync();
+
+            // Update counts asynchronously
+            await UpdateCountsAsync();  // Call the async method
+
+            _canSave = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during computation.");
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
     }
 
-    private async Task Save()
+
+    private async Task SaveDataAsync()
     {
-        this.Logger.LogInformation("Save");
-        throw new NotImplementedException();
+        if (!_canSave) return;
+
+        try
+        {
+            Logger.LogInformation("Saving data...");
+            // Save the data using the threading service
+            await ThreadingService.SaveAsync();
+            _canSave = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error while saving data.");
+        }
     }
+
+
+
+
+
+
+    private async Task UpdateCountsAsync()
+    {
+        try
+        {
+            // Use await if the methods are asynchronous
+            _oddNumbers = await ThreadingService.GetOddNumbersAsync();
+            _evenNumbers = await ThreadingService.GetEvenNumbersAsync();
+            _primeNumbers = await ThreadingService.GetPrimeNumbersAsync();  // Assuming the method exists in ThreadingService
+            _totalNumbers = await ThreadingService.GetTotalNumbersAsync();
+        }
+        catch (Exception ex)
+        {
+            // Optionally log or handle the exception
+            Logger.LogError(ex, "Error updating counts.");
+        }
+    }
+
+
 
 }

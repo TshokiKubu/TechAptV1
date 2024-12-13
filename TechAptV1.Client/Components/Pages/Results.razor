@@ -1,56 +1,128 @@
 ﻿@page "/results"
 @using TechAptV1.Client.Models
 @using TechAptV1.Client.Services
+@inject IJSRuntime JS
 
 <h3>Results</h3>
-<p>The table shows the top N numbers generated. The download XML and Binary feature allows you to download the entire data set</p>
+<p>The table below displays the top 20 numbers generated and their prime status. Download options are available.</p>
 
 <div>
-    <button class="btn btn-primary" @onclick="(async () => await this.DownloadXml())">Download XML</button>
-    <button class="btn btn-primary" @onclick="(async () => await this.DownloadBinary())">Download Binary</button>
+    <button class="btn btn-primary" @onclick="DownloadXml">Download XML</button>
+    <button class="btn btn-primary" @onclick="DownloadBinary">Download Binary</button>
 </div>
+
 <div>
     <table class="table">
         <thead>
-        <tr>
-            <th>Value</th>
-            <th>IsPrime</th>
-        </tr>
+            <tr>
+                <th>Value</th>
+                <th>IsPrime</th>
+            </tr>
         </thead>
         <tbody>
-        @foreach (var item in this.numbers)
-        {
-            <tr>
-                <td>@item.Value</td>
-                <td>@item.IsPrime</td>
-            </tr>
-        }
+            @if (Numbers != null && Numbers.Any())
+            {
+                @foreach (var item in Numbers)
+                {
+                    <tr>
+                        <td>@item.Value</td>
+                        <td>@item.IsPrime</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="2">No data available.</td>
+                </tr>
+            }
         </tbody>
     </table>
 </div>
 
 @code {
+    [Inject] public required ILogger<Results> Logger { get; set; }
+    [Inject] public required DataService DataService { get; set; }
 
-    [Inject] public required ILogger<Threading> Logger { get; set; }
+    private List<Number> Numbers { get; set; } = new();
 
-    private List<Number> numbers = new ();
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Logger.LogInformation("Initializing Results page.");
+            Numbers = await DataService.GetAllAsync(20); // Fetch the top 20 numbers.
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading numbers for display.");
+        }
+    }
 
     /// <summary>
-    /// Fetches all the records, serializes them to XML and downloads the file
+    /// Fetches all the records, serializes them to XML, and downloads the file.
     /// </summary>
     private async Task DownloadXml()
     {
-        this.Logger.LogInformation("DownloadXml");
-        throw new NotImplementedException();
+        try
+        {
+            Logger.LogInformation("Downloading XML file.");
+            string filePath = Path.Combine("C:\\Exports", "Numbers.xml");
+            await DataService.ExportToXmlAsync(filePath);
+            Logger.LogInformation($"XML file saved at {filePath}");
+            await JS.InvokeVoidAsync("alert", $"XML file saved at {filePath}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during XML download.");
+        }
     }
 
     /// <summary>
-    /// Fetches all the records, serializes them to Binary and downloads the file
+    /// Fetches all the records, serializes them to Binary, and downloads the file.
     /// </summary>
     private async Task DownloadBinary()
     {
-        this.Logger.LogInformation("DownloadBinary");
-        throw new NotImplementedException();
+        try
+        {
+            Logger.LogInformation("Downloading Binary file.");
+            string filePath = Path.Combine("C:\\Exports", "Numbers.bin");
+            await DataService.ExportToBinaryAsync(filePath);
+            Logger.LogInformation($"Binary file saved at {filePath}");
+            await JS.InvokeVoidAsync("alert", $"Binary file saved at {filePath}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during Binary download.");
+        }
     }
+
+
+
+    private async Task DownloadBinary2()
+{
+    try
+    {
+        Logger.LogInformation("Starting Binary file download.");
+
+        // Specify the file path where the binary file will be saved
+        var filePath = @"C:\Exports\Numbers.bin";
+
+        // Ensure directory exists
+        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+        await DataService.ExportToBinaryAsync(filePath);
+
+        // Notify the user about the saved location
+        await JS.InvokeVoidAsync("alert", $"Binary file saved at: {filePath}");
+    }
+    catch (Exception ex)
+    {
+        Logger.LogError(ex, "Error during Binary file export.");
+        await JS.InvokeVoidAsync("alert", "Failed to download binary file.");
+    }
+}
+
+
 
 }
