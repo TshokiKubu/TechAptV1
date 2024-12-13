@@ -4,8 +4,8 @@
       "Dev": {
         "commandName": "Project",
         "dotnetRunMessages": true,
-        "launchBrowser": false,
-        "applicationUrl": "http://+:33801",
+        "launchBrowser": true,
+        "applicationUrl": "https://+:33801",
         "environmentVariables": {
           "ASPNETCORE_ENVIRONMENT": "Development"
         }
